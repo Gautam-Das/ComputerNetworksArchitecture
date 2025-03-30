@@ -128,9 +128,14 @@ while True:
     ## creating the reponse
     response_line = "HTTP/1.1 200 OK\r\n"
     content_length = sum(len(line) for line in cacheData)
+    body = "\n".join(cacheData)
     headers_line = f"Content-type: {mimetypes.guess_type(cacheLocation)[0]}\r\nContent-Length: {str(content_length)}\r\n"
     blank_line = "\r\n"
 
+    response = (response_line + headers_line + blank_line + body).encode('utf-8')
+    
+    clientSocket.sendall(response) # sendall to make sure everything is sent
+    
     # ~~~~ END CODE INSERT ~~~~
     cacheFile.close()
     print ('Sent to the client:')
