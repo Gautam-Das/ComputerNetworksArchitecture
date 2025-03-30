@@ -42,6 +42,7 @@ except:
 try:
   # Listen on the server socket
   # ~~~~ INSERT CODE ~~~~
+  socket_obj.listen()
   # ~~~~ END CODE INSERT ~~~~
   print ('Listening to socket')
 except:
