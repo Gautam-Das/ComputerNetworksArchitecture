@@ -71,7 +71,7 @@ while True:
   # Get HTTP request from client
   # and store it in the variable: message_bytes
   # ~~~~ INSERT CODE ~~~~
-  message_bytes = socket_obj.recv(BUFFER_SIZE)
+  message_bytes = clientSocket.recv(BUFFER_SIZE)
   # ~~~~ END CODE INSERT ~~~~
   message = message_bytes.decode('utf-8')
   print ('Received request:')
@@ -115,7 +115,7 @@ while True:
     print ('Cache location:\t\t' + cacheLocation)
 
     fileExists = os.path.isfile(cacheLocation)
-    
+
     # Check wether the file is currently in the cache
     cacheFile = open(cacheLocation, "r")
     cacheData = cacheFile.readlines()
@@ -155,7 +155,7 @@ while True:
       address = socket.gethostbyname(hostname)
       # Connect to the origin server
       # ~~~~ INSERT CODE ~~~~
-      originServerSocket.connect(address)
+      originServerSocket.connect((address,80)) # typically port 80 for http
       # ~~~~ END CODE INSERT ~~~~
       print ('Connected to origin Server')
 
