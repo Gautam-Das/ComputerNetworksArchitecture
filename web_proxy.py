@@ -55,11 +55,12 @@ except:
 while True:
   print ('Waiting for connection...')
   clientSocket = None
+  clientAddress = None
 
   # Accept connection from client and store in the clientSocket
   try:
     # ~~~~ INSERT CODE ~~~~
-    
+    clientSocket, clientAddress = socket_obj.accept()
     # ~~~~ END CODE INSERT ~~~~
     print ('Received a connection')
   except:
