@@ -4,6 +4,7 @@ import sys
 import os
 import argparse
 import re
+import mimetypes
 
 # 1MB buffer size
 BUFFER_SIZE = 1000000
@@ -123,6 +124,13 @@ while True:
     # ProxyServer finds a cache hit
     # Send back response to client 
     # ~~~~ INSERT CODE ~~~~
+    
+    ## creating the reponse
+    response_line = "HTTP/1.1 200 OK\r\n"
+    content_length = sum(len(line) for line in cacheData)
+    headers_line = f"Content-type: {mimetypes.guess_type(cacheLocation)[0]}\r\nContent-Length: {str(content_length)}\r\n"
+    blank_line = "\r\n"
+
     # ~~~~ END CODE INSERT ~~~~
     cacheFile.close()
     print ('Sent to the client:')
