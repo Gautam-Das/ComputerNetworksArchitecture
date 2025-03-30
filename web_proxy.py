@@ -42,7 +42,9 @@ except:
 try:
   # Listen on the server socket
   # ~~~~ INSERT CODE ~~~~
-  socket_obj.listen()
+  # max 3 queued incomming connections,
+  # don't expect more than 1 but just in case
+  socket_obj.listen(3)  
   # ~~~~ END CODE INSERT ~~~~
   print ('Listening to socket')
 except:
@@ -57,6 +59,7 @@ while True:
   # Accept connection from client and store in the clientSocket
   try:
     # ~~~~ INSERT CODE ~~~~
+    
     # ~~~~ END CODE INSERT ~~~~
     print ('Received a connection')
   except:
