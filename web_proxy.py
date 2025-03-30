@@ -135,7 +135,7 @@ while True:
     response = (response_line + headers_line + blank_line + body).encode('utf-8')
     
     clientSocket.sendall(response) # sendall to make sure everything is sent
-    
+
     # ~~~~ END CODE INSERT ~~~~
     cacheFile.close()
     print ('Sent to the client:')
@@ -146,6 +146,7 @@ while True:
     # Create a socket to connect to origin server
     # and store in originServerSocket
     # ~~~~ INSERT CODE ~~~~
+    originServerSocket = socket.socket()
     # ~~~~ END CODE INSERT ~~~~
 
     print ('Connecting to:\t\t' + hostname + '\n')
@@ -154,6 +155,7 @@ while True:
       address = socket.gethostbyname(hostname)
       # Connect to the origin server
       # ~~~~ INSERT CODE ~~~~
+      originServerSocket.connect(address)
       # ~~~~ END CODE INSERT ~~~~
       print ('Connected to origin Server')
 
