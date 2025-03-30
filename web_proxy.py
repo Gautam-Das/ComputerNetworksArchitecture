@@ -168,7 +168,7 @@ while True:
       # ~~~~ INSERT CODE ~~~~
       # print(method, resource, version, hostname)
       originServerRequest = f"{method} {resource} {version}"
-      originServerRequestHeader = f"Host: {hostname}"
+      originServerRequestHeader = f"Host: {hostname}\r\nConnection: close"
 
       # ~~~~ END CODE INSERT ~~~~
 
@@ -191,13 +191,15 @@ while True:
       # Get the response from the origin server
       # ~~~~ INSERT CODE ~~~~
       response = b''
-      while chunk := originServerSocket.recv(BUFFER_SIZE):
+      chunk = originServerSocket.recv(BUFFER_SIZE)
+      while chunk:
         response += chunk
+        chunk = originServerSocket.recv(BUFFER_SIZE)
       # ~~~~ END CODE INSERT ~~~~
 
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
-      socket_obj.sendall(response)
+      clientSocket.sendall(response)
       # ~~~~ END CODE INSERT ~~~~
 
       # Create a new file in the cache for the requested file.
