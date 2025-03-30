@@ -16,6 +16,7 @@ parser.add_argument('port', help='the port number of the proxy server')
 args = parser.parse_args()
 proxyHost = args.hostname
 proxyPort = int(args.port)
+print(proxyPort)
 
 socket_obj = None
 
@@ -33,10 +34,9 @@ except:
 try:
   # Bind the the server socket to a host and port
   # ~~~~ INSERT CODE ~~~~
-  socket_obj.bind(proxyHost, proxyPort)
+  socket_obj.bind((proxyHost, proxyPort))
   # ~~~~ END CODE INSERT ~~~~
-  print ('Port is bound')
-except:
+except Exception as e:
   print('Port is already in use')
   sys.exit()
 
@@ -166,6 +166,7 @@ while True:
       # originServerRequest is the first line in the request and
       # originServerRequestHeader is the second line in the request
       # ~~~~ INSERT CODE ~~~~
+
       # ~~~~ END CODE INSERT ~~~~
 
       # Construct the request to send to the origin server
