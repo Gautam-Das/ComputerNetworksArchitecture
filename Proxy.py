@@ -221,6 +221,12 @@ while True:
         chunk_headers, chunk_body = parse_response(chunk)
       # ~~~~ END CODE INSERT ~~~~
 
+        # - if the response is not complete (according to content length described in headers) 
+        # check if the status of the response is 200, if it is then you cant serve it according to RFC 
+        # 13.8, in that case send a 502 response ("origin served incomplete response or something")
+        # otherwise serve it
+
+
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
       clientSocket.sendall(response)
@@ -229,49 +235,45 @@ while True:
       
 
       # cache needs to act as a mediator first so just forward whatever response was received
-        # - if the response is not complete (according to content length described in headers) 
-        # check if the status of the response is 200, if it is then you cant serve it according to RFC 
-        # 13.8, in that case send a 502 response ("origin served incomplete response or something")
-        # otherwise serve it
 
-        # - if there is an error in the response, 
-        # check if the response says must-revalidate, if so dont cache
-        # otherwise cache
 
         # cache if:
         # response status is understood by the cache
         # no-store is not in the header
-        # private is not in the response 
-        # auth header is not in request, unless response allows it
+        # private is not in the response directive
+        # if the response status code is 206 or 304, or the must-understand cache directive is present
         # contains: Expires, max-age/s-maxage response directive, cache control extension, 
         # or status code that is cacheable by default: 200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, and 501
 
       response_headers, response_body = parse_response(response)
       # dont neeed to worry about this authorization, since at the moment cache doesn't support requestheaders
-      
-      cacheable = ("no-store" not in response_headers and 
-                   response_headers.get("cache-control", "") != "private" and 
+      status_line = response_headers.get("status", "")
+      status_code = int(status_line.split()[1]) if status_line else 0
+      cacheable = ("no-store" not in response_headers.get("cache-control", "").lower() and 
+                   "private" not in response_headers.get("cache-control", "").lower() and 
                    ("expires" in response_headers or 
                     "max-age" in response_headers.get("cache-control", "").lower() or 
                     "s-maxage" in response_headers.get("cache-control", "").lower() or
-                    any(code in response_headers.get("status", "") for code in [200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, 501])))
+                    "must-understand" in response_headers.get("cache-control", "").lower() or 
+                    any(code == status_code for code in [200, 203, 204, 206, 300, 301, 304, 308, 404, 405, 410, 414, 501])))
 
 
 
 
       # Create a new file in the cache for the requested file.
-      cacheDir, file = os.path.split(cacheLocation)
-      print ('cached directory ' + cacheDir)
-      if not os.path.exists(cacheDir):
-        os.makedirs(cacheDir)
-      cacheFile = open(cacheLocation, 'wb')
+      if cacheable:
+        cacheDir, file = os.path.split(cacheLocation)
+        print ('cached directory ' + cacheDir)
+        if not os.path.exists(cacheDir):
+          os.makedirs(cacheDir)
+        cacheFile = open(cacheLocation, 'wb')
 
-      # Save origin server response in the cache file
-      # ~~~~ INSERT CODE ~~~~
-      cacheFile.write(response)
-      # ~~~~ END CODE INSERT ~~~~
-      cacheFile.close()
-      print ('cache file closed')
+        # Save origin server response in the cache file
+        # ~~~~ INSERT CODE ~~~~
+        cacheFile.write(response)
+        # ~~~~ END CODE INSERT ~~~~
+        cacheFile.close()
+        print ('cache file closed')
 
       # finished communicating with origin server - shutdown socket writes
       print ('origin response received. Closing sockets')
