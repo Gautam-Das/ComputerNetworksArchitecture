@@ -101,7 +101,9 @@ while True:
 
   # Split hostname from resource name
   resourceParts = URI.split('/', 1)
-  hostname = resourceParts[0]
+  parts = resourceParts[0].split(":")
+  hostname = parts[0]
+  port = 80 if len(parts) == 1 else int(parts[1])
   resource = '/'
 
   if len(resourceParts) == 2:
