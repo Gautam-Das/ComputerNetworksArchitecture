@@ -226,10 +226,26 @@ while True:
         # 13.8, in that case send a 502 response ("origin served incomplete response or something")
         # otherwise serve it
 
-
+      
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
-      clientSocket.sendall(response)
+      # check if its incomplete
+      content_length = int(response_headers.get("content-length", -1))
+      actual_length = len(response_body)
+      is_incomplete = content_length != -1 and actual_length < content_length
+
+      # MUST NOT serve incomplete with 200 code
+      if is_incomplete and status_code == 200:
+        error_response = (
+            "HTTP/1.1 502 Bad Gateway\r\n"
+            "Content-Type: text/plain\r\n"
+            "Content-Length: 50\r\n\r\n"
+            "Origin server returned incomplete response."
+        ).encode("utf-8")
+
+        clientSocket.sendall(error_response)
+      else: 
+        clientSocket.sendall(response)
       # ~~~~ END CODE INSERT ~~~~
 
       
@@ -256,7 +272,9 @@ while True:
                     "s-maxage" in response_headers.get("cache-control", "").lower() or
                     "must-understand" in response_headers.get("cache-control", "").lower() or 
                     any(code == status_code for code in [200, 203, 204, 206, 300, 301, 304, 308, 404, 405, 410, 414, 501])))
-
+      # make sure not incomplete
+      # according to RFC 9111 3.3, must not store if partial or incomplete since we dont handle ranges
+      if is_incomplete or (status_code == 206): cacheable = False
 
 
 
