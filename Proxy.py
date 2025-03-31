@@ -6,6 +6,7 @@ import argparse
 import re
 import mimetypes
 from datetime import datetime
+import json
 
 # 1MB buffer size
 BUFFER_SIZE = 1000000
@@ -118,8 +119,8 @@ while True:
     fileExists = os.path.isfile(cacheLocation)
 
     # Check wether the file is currently in the cache
-    cacheFile = open(cacheLocation, "r")
-    cacheData = cacheFile.readlines()
+    cacheFile = open(cacheLocation, "rb")
+    cacheData = cacheFile.read()
 
     print ('Cache hit! Loading from cache file: ' + cacheLocation)
     # ProxyServer finds a cache hit
@@ -127,13 +128,13 @@ while True:
     # ~~~~ INSERT CODE ~~~~
     
     ## creating the reponse
-    clientSocket.sendall("".join(cacheData)) # sendall to make sure everything is sent
+    clientSocket.sendall(cacheData) # sendall to make sure everything is sent
 
     # ~~~~ END CODE INSERT ~~~~
     cacheFile.close()
     print ('Sent to the client:')
-    print ('> ' + "".join(cacheData))
-  except:
+    print ('> ' + cacheData.decode('utf-8'))
+  except Exception as e:
     # cache miss.  Get resource from origin server
     originServerSocket = None
     # Create a socket to connect to origin server
@@ -200,23 +201,14 @@ while True:
         headers = {"status" : status}
         for line in header_lines:
           if ":" not in line: continue
-          key, value = line.split(":")
+          key, value = line.split(":",1)
           headers[key.strip().lower()] = value.strip()
         return headers, body
       
       chunk_headers, chunk_body = parse_response(chunk)
 
-
-      ## according to RFC 13.5.4 if multiple response are received the cahce MAY combine them
-      ## I have chosen not to, since it works in more cases without having to delve into validators
       while chunk:
-        current_chunk_date = datetime.strptime(chunk_headers['date'], "%a, %d %b %Y %H:%M:%S GMT")
-        if not prev_response_date:
-          prev_response_date = current_chunk_date # following RFC format
-          response = chunk
-        elif prev_response_date < current_chunk_date:
-          prev_response_date = current_chunk_date
-          response = chunk
+        response += chunk
         chunk = originServerSocket.recv(BUFFER_SIZE)
         chunk_headers, chunk_body = parse_response(chunk)
       # ~~~~ END CODE INSERT ~~~~
@@ -230,10 +222,14 @@ while True:
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
       # check if its incomplete
+      response_headers, response_body = parse_response(response)
+
       content_length = int(response_headers.get("content-length", -1))
       actual_length = len(response_body)
       is_incomplete = content_length != -1 and actual_length < content_length
 
+      status_line = response_headers.get("status", "")
+      status_code = int(status_line.split()[1]) if status_line else 0
       # MUST NOT serve incomplete with 200 code
       if is_incomplete and status_code == 200:
         error_response = (
@@ -261,10 +257,8 @@ while True:
         # contains: Expires, max-age/s-maxage response directive, cache control extension, 
         # or status code that is cacheable by default: 200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, and 501
 
-      response_headers, response_body = parse_response(response)
       # dont neeed to worry about this authorization, since at the moment cache doesn't support requestheaders
-      status_line = response_headers.get("status", "")
-      status_code = int(status_line.split()[1]) if status_line else 0
+
       cacheable = ("no-store" not in response_headers.get("cache-control", "").lower() and 
                    "private" not in response_headers.get("cache-control", "").lower() and 
                    ("expires" in response_headers or 
@@ -275,8 +269,6 @@ while True:
       # make sure not incomplete
       # according to RFC 9111 3.3, must not store if partial or incomplete since we dont handle ranges
       if is_incomplete or (status_code == 206): cacheable = False
-
-
 
       # Create a new file in the cache for the requested file.
       if cacheable:
@@ -289,6 +281,20 @@ while True:
         # Save origin server response in the cache file
         # ~~~~ INSERT CODE ~~~~
         cacheFile.write(response)
+        cache_control = response_headers.get("cache-control", "")
+        matches = re.search(r'max-age\s*=\s*(\d+)', cache_control) # extract seconds from max-age=<seconds>
+        max_age = int(matches.group(1)) if matches else -1
+        now = datetime.utcnow()
+        metadata = {
+            "stored_at": now.isoformat(),
+            "max_age": max_age,
+            "status_code": status_code,
+            "etag": response_headers.get("etag"),
+            "incomplete": False
+        }
+        with open(cacheLocation+".meta", "w") as metafile:
+          json.dump(metadata, metafile)
+        
         # ~~~~ END CODE INSERT ~~~~
         cacheFile.close()
         print ('cache file closed')
