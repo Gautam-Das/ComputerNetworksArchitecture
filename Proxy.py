@@ -5,6 +5,7 @@ import os
 import argparse
 import re
 import mimetypes
+from datetime import datetime
 
 # 1MB buffer size
 BUFFER_SIZE = 1000000
@@ -126,15 +127,7 @@ while True:
     # ~~~~ INSERT CODE ~~~~
     
     ## creating the reponse
-    response_line = "HTTP/1.1 200 OK\r\n"
-    content_length = sum(len(line) for line in cacheData)
-    body = "\n".join(cacheData)
-    headers_line = f"Content-type: {mimetypes.guess_type(cacheLocation)[0]}\r\nContent-Length: {str(content_length)}\r\n"
-    blank_line = "\r\n"
-
-    response = (response_line + headers_line + blank_line + body).encode('utf-8')
-    
-    clientSocket.sendall(response) # sendall to make sure everything is sent
+    clientSocket.sendall("".join(cacheData)) # sendall to make sure everything is sent
 
     # ~~~~ END CODE INSERT ~~~~
     cacheFile.close()
@@ -192,15 +185,70 @@ while True:
       # ~~~~ INSERT CODE ~~~~
       response = b''
       chunk = originServerSocket.recv(BUFFER_SIZE)
+      prev_response_date = None
+      
+      def parse_response(chunk):
+        try:
+          header_raw, body = chunk.split(b'\r\n\r\n', 1)
+        except ValueError:
+            return {}, chunk
+
+        # evidently utf8 has some edge cases that might fail
+        header_lines = header_raw.decode('iso-8859-1').split('\r\n')
+
+        status = header_lines[0]
+        headers = {}
+        for line in header_lines:
+          key, value = line.split(":")
+          headers[key.strip().lower()] = value.strip()
+        return headers, body
+      
+      chunk_headers, chunk_body = parse_response(chunk)
+
+
+      ## according to RFC 13.5.4 if multiple response are received the cahce MAY combine them
+      ## I have chosen not to, since it works in more cases without having to delve into validators
       while chunk:
-        response += chunk
+        current_chunk_date = datetime.strptime(chunk_headers['date'], "%a, %d %b %Y %H:%M:%S GMT")
+        if not prev_response_date:
+          prev_response_date = current_chunk_date # following RFC format
+          response = chunk
+        elif prev_response_date < current_chunk_date:
+          prev_response_date = current_chunk_date
+          response = chunk
         chunk = originServerSocket.recv(BUFFER_SIZE)
       # ~~~~ END CODE INSERT ~~~~
+
+      # cache needs to act as a mediator first so just forward whatever response was received
+        # - if the response is not complete (according to content length described in headers) 
+        # check if the status of the response is 200, if it is then you cant serve it according to RFC 
+        # 13.8, in that case send a 502 response ("origin served incomplete response or something")
+        # otherwise serve it
+
+        # - if there is an error in the response, 
+        # check if the response says must-revalidate, if so dont cache
+        # otherwise cache
+
+        # cache if:
+        # response status is understood by the cache
+        # no-store is not in the header
+        # private is not in the response 
+        # auth header is not in request, unless response allows it
+        # contains: Expires, max-age/s-maxage response directive, cache control extension, 
+        # or status code that is cacheable by default: 200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, and 501
+
+
 
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
       clientSocket.sendall(response)
       # ~~~~ END CODE INSERT ~~~~
+
+      
+
+
+
+
 
       # Create a new file in the cache for the requested file.
       cacheDir, file = os.path.split(cacheLocation)
