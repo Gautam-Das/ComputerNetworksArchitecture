@@ -6,6 +6,7 @@ import argparse
 import re
 import mimetypes
 from datetime import datetime
+from datetime import timedelta, timezone
 import json
 
 # 1MB buffer size
@@ -126,7 +127,17 @@ while True:
     # ProxyServer finds a cache hit
     # Send back response to client 
     # ~~~~ INSERT CODE ~~~~
-    
+    with open(cacheLocation +".meta", 'r') as metafile:
+      metadata = json.load(metafile)
+      stored_at = datetime.fromisoformat(metadata["stored_at"])
+      max_age = metadata.get("max_age", -1)
+      now = datetime.now(timezone.utc)
+      is_fresh = max_age == -1 or (stored_at + timedelta(seconds=max_age)) > now
+      if not is_fresh:
+        print("Entry in Cache is past max age")
+        cacheFile.close()
+        raise Exception("Cache entry past max age")
+
     ## creating the reponse
     clientSocket.sendall(cacheData) # sendall to make sure everything is sent
 
@@ -135,6 +146,7 @@ while True:
     print ('Sent to the client:')
     print ('> ' + cacheData.decode('utf-8'))
   except Exception as e:
+    print(str(e))
     # cache miss.  Get resource from origin server
     originServerSocket = None
     # Create a socket to connect to origin server
@@ -284,7 +296,7 @@ while True:
         cache_control = response_headers.get("cache-control", "")
         matches = re.search(r'max-age\s*=\s*(\d+)', cache_control) # extract seconds from max-age=<seconds>
         max_age = int(matches.group(1)) if matches else -1
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         metadata = {
             "stored_at": now.isoformat(),
             "max_age": max_age,
