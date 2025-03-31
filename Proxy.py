@@ -197,8 +197,9 @@ while True:
         header_lines = header_raw.decode('iso-8859-1').split('\r\n')
 
         status = header_lines[0]
-        headers = {}
+        headers = {"status" : status}
         for line in header_lines:
+          if ":" not in line: continue
           key, value = line.split(":")
           headers[key.strip().lower()] = value.strip()
         return headers, body
@@ -217,7 +218,15 @@ while True:
           prev_response_date = current_chunk_date
           response = chunk
         chunk = originServerSocket.recv(BUFFER_SIZE)
+        chunk_headers, chunk_body = parse_response(chunk)
       # ~~~~ END CODE INSERT ~~~~
+
+      # Send the response to the client
+      # ~~~~ INSERT CODE ~~~~
+      clientSocket.sendall(response)
+      # ~~~~ END CODE INSERT ~~~~
+
+      
 
       # cache needs to act as a mediator first so just forward whatever response was received
         # - if the response is not complete (according to content length described in headers) 
@@ -237,15 +246,15 @@ while True:
         # contains: Expires, max-age/s-maxage response directive, cache control extension, 
         # or status code that is cacheable by default: 200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, and 501
 
-
-
-      # Send the response to the client
-      # ~~~~ INSERT CODE ~~~~
-      clientSocket.sendall(response)
-      # ~~~~ END CODE INSERT ~~~~
-
+      response_headers, response_body = parse_response(response)
+      # dont neeed to worry about this authorization, since at the moment cache doesn't support requestheaders
       
-
+      cacheable = ("no-store" not in response_headers and 
+                   response_headers.get("cache-control", "") != "private" and 
+                   ("expires" in response_headers or 
+                    "max-age" in response_headers.get("cache-control", "").lower() or 
+                    "s-maxage" in response_headers.get("cache-control", "").lower() or
+                    any(code in response_headers.get("status", "") for code in [200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, 501])))
 
 
 
