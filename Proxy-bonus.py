@@ -150,7 +150,6 @@ while True:
     print ('Sent to the client:')
     print ('> ' + cacheData.decode('utf-8'))
   except Exception as e:
-    print(str(e))
     # cache miss.  Get resource from origin server
     originServerSocket = None
     # Create a socket to connect to origin server
