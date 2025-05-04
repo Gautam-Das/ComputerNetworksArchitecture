@@ -92,11 +92,11 @@ void A_timerinterrupt(void) {
     /*since the timer is only tracking the first packet in the window
     resend the first packet in the window
     and restart the timer*/
+    struct pkt base_packet = buffer[send_base];
 
     if (TRACE > 0)
         printf("----A: time out, resending packet!\n");
     
-    struct pkt base_packet = buffer[send_base];
     tolayer3(A, base_packet);
     packets_resent++;
     starttimer(A, RTT);
