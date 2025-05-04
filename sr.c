@@ -157,8 +157,9 @@ static struct pkt rcv_buffer[SEQSPACE]; /* array for storing packets that have b
 
 void B_init(void) {
     /* initialise B's window, buffer and sequence number */
-    rcv_base = 0;
     int i = 0;
+    rcv_base = 0;
+    
     for (i = 0; i < SEQSPACE; i++) {
         rcv_buffer[i].seqnum = NOTINUSE; /* not used */
         rcv_buffer[i].acknum = NOTINUSE; /* not used */
