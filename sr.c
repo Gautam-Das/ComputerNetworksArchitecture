@@ -149,3 +149,18 @@ void A_input(struct pkt packet) {
     }
 }
 
+/********* Receiver (B)  variables and procedures ************/
+static int rcv_base; /* the sequence number expected next by the receiver */
+static struct pkt rcv_buffer[SEQSPACE]; /* array for storing packets that have been recieved */
+
+void B_init(void) {
+    /* initialise B's window, buffer and sequence number */
+    rcv_base = 0;
+    for (int i = 0; i < SEQSPACE; i++) {
+        rcv_buffer[i].seqnum = NOTINUSE; // not used
+        rcv_buffer[i].acknum = NOTINUSE; // not used
+        rcv_buffer[i].checksum = 0; // not used
+        for (int j = 0; j < 20; j++)
+            rcv_buffer[i].payload[j] = '0'; // empty since no data to send
+    }
+}
