@@ -29,3 +29,28 @@ bool is_corrupted(struct pkt packet) {
         return true;
 }
 
+/********* Sender (A) variables and functions ************/
+static struct pkt buffer[SEQSPACE];  /* array for storing packets waiting for ACK */
+static bool acked[SEQSPACE]; /* array for storing ACKs received */
+static int send_base; /* the first packet in the window */
+static int A_next_seq_num; /* the next sequence number to be used by the sender */
+
+
+void A_init(void) {
+    /* initialise A's window, buffer and sequence number */
+    A_next_seq_num = 0;
+    send_base = 0;   
+
+}
+
+void A_output(struct msg message) {
+    // when data is received from layer 5,
+    // check the next available sequence number
+    // if the sequence number is within the window
+    // packetize the data and send it to layer 3
+    // else drop the packet
+
+    // for the time, only track the oldest un'acked packet
+    // which should be the first packet in the window
+
+}
