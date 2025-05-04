@@ -205,10 +205,11 @@ void B_input(struct pkt packet) {
     if (in_window) {
         /* if the packet is in the window, send an ACK */
         struct pkt ack_packet;
+        int i = 0;
         ack_packet.seqnum = NOTINUSE; /* not used */
         ack_packet.acknum = packet.seqnum;
         ack_packet.checksum = compute_checksum(ack_packet); /* compute checksum */
-        for (int i = 0; i < 20; i++)
+        for (i = 0; i < 20; i++)
             ack_packet.payload[i] = '0'; /* empty since no data to send */
         tolayer3(B, ack_packet); /* send ACK to layer 3 */
 
@@ -250,10 +251,11 @@ void B_input(struct pkt packet) {
     if (in_lower_window){
         /* send an ACK for the packet */
         struct pkt ack_packet;
+        int i = 0;
         ack_packet.seqnum = NOTINUSE; /* not used  */
         ack_packet.acknum = packet.seqnum;
         ack_packet.checksum = compute_checksum(ack_packet); /* compute checksum */
-        for (int i = 0; i < 20; i++)
+        for (i = 0; i < 20; i++)
             ack_packet.payload[i] = '0'; /* empty since no data to send */
         tolayer3(B, ack_packet); /* send ACK to layer 3 */
         if (TRACE > 0)
@@ -263,4 +265,18 @@ void B_input(struct pkt packet) {
 
     /* if the packet is not in the either of the windows, drop it */
     return;
+}
+
+/******************************************************************************
+ * The following functions need be completed only for bi-directional messages *
+ *****************************************************************************/
+
+/* Note that with simplex transfer from a-to-B, there is no B_output() */
+void B_output(struct msg message)
+{
+}
+
+/* called when B's timer goes off */
+void B_timerinterrupt(void)
+{
 }
