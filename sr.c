@@ -58,9 +58,10 @@ void A_output(struct msg message) {
 
     /* if sequence number is within the window*/
     if (A_next_seq_num < send_base + WINDOWSIZE) {
-        if (TRACE > 1)
+        if (TRACE > 1) {
             printf("----A: New message arrives, send window is not full, send new message to layer3!\n");
-
+            /*getchar();*/
+        }
         /* create packet */
         send_pkt.seqnum = A_next_seq_num;
         send_pkt.acknum = NOTINUSE;
@@ -72,8 +73,10 @@ void A_output(struct msg message) {
         buffer[A_next_seq_num % WINDOWSIZE] = send_pkt;
         
         /* send out packet */
-        if (TRACE > 0)
+        if (TRACE > 0) {
             printf("Sending packet %d to layer 3\n", send_pkt.seqnum);
+            /*getchar();*/
+        }
         tolayer3 (A, send_pkt);
 
         /* start timer if first packet in window*/
@@ -82,8 +85,10 @@ void A_output(struct msg message) {
         }
         A_next_seq_num = (A_next_seq_num + 1) % SEQSPACE;
     } else {
-        if (TRACE > 0)
+        if (TRACE > 0){
             printf("----A: New message arrives, send window is full\n");
+            /*getchar();*/
+        }
         window_full++;
     }
 }
@@ -94,8 +99,10 @@ void A_timerinterrupt(void) {
     and restart the timer*/
     struct pkt base_packet = buffer[send_base];
 
-    if (TRACE > 0)
+    if (TRACE > 0) {
         printf("----A: time out, resending packet!\n");
+        /*getchar();*/
+    }
     
     tolayer3(A, base_packet);
     packets_resent++;
@@ -106,23 +113,30 @@ void A_input(struct pkt packet) {
     /* when an ACK is received from layer 3
     check if the ACK is corrupted*/
     if (is_corrupted(packet)) {
-        if (TRACE > 0)
-            printf("----A: corrupted ACK %d is received\n", packet.acknum);
+        if (TRACE > 0) {
+            printf("----A: corrupted ACK %d is received with checksum %d, computed checksum %d\n", packet.acknum, packet.checksum, compute_checksum(packet));
+            printf("----A: packet.seqnum %d, packet.acknum %d, packet.checksum %d, packet.payload %s, computed checksum %d\n", packet.seqnum, packet.acknum, packet.checksum, packet.payload, compute_checksum(packet));
+            /*getchar();*/
+        }
         return;
     }
     total_ACKs_received++;
     
     /*check if the ACK is within the window*/
     if (packet.acknum < send_base || packet.acknum >= A_next_seq_num) {
-        if (TRACE > 0)
+        if (TRACE > 0) {
             printf("----A: ACK %d is out of window\n", packet.acknum);
+            /*getchar();*/
+        }
         return;
     }
 
     /*check if the ACK is a new ACK or a duplicate*/
     if (acked[packet.acknum]) {
-        if (TRACE > 0)
+        if (TRACE > 0) {
             printf("----A: duplicate ACK %d received, do nothing!\n", packet.acknum);
+            /*getchar();*/
+        }
         return;
     }
 
@@ -132,8 +146,10 @@ void A_input(struct pkt packet) {
     /* if the ACK is the first packet in the window */
     /* stop the timer and slide the window to the right */
     if (packet.acknum == send_base) {
-        if (TRACE > 0)
+        if (TRACE > 0) {
             printf("----A: ACK %d is for base packet\n", packet.acknum);
+            /*getchar();*/
+        }
         stoptimer(A); /* stop the timer */
     }
 
@@ -184,15 +200,19 @@ void B_input(struct pkt packet) {
     /* packet is received from layer 3 */
     /* check if the packet is corrupted */
     if (is_corrupted(packet)) {
-        if (TRACE > 0)
+        if (TRACE > 0) {
             printf("----B: corrupted packet %d is received\n", packet.seqnum);
+            /*getchar();*/
+        }
         return;
     }
     packets_received++;
     
     
-    if (TRACE > 0)
+    if (TRACE > 0) {
         printf("----B: packet %d is received, window start %d, window end %d\n", packet.seqnum, window_start, window_end);
+        /*getchar();*/
+    }
     
     if (window_start < window_end) {
         /* normal case, no wrap around */
@@ -208,13 +228,18 @@ void B_input(struct pkt packet) {
         int i = 0;
         ack_packet.seqnum = NOTINUSE; /* not used */
         ack_packet.acknum = packet.seqnum;
-        ack_packet.checksum = compute_checksum(ack_packet); /* compute checksum */
         for (i = 0; i < 20; i++)
             ack_packet.payload[i] = '0'; /* empty since no data to send */
+        ack_packet.checksum = compute_checksum(ack_packet); /* compute checksum */
+
         tolayer3(B, ack_packet); /* send ACK to layer 3 */
 
-        if (TRACE > 0)
-            printf("----B: ACK %d is sent\n", ack_packet.acknum);
+        if (TRACE > 0) {
+            printf("----B: ACK %d is sent with checksum %d\n", ack_packet.acknum, ack_packet.checksum);
+            /* print details of packet*/
+            printf("----B: packet.seqnum %d, packet.acknum %d, packet.checksum %d\n", ack_packet.seqnum, ack_packet.acknum, ack_packet.checksum);
+            /*getchar();*/
+        }
             
         /* check if packet is a duplicate */
         if (rcv_buffer[packet.seqnum].seqnum == NOTINUSE) {
@@ -222,8 +247,10 @@ void B_input(struct pkt packet) {
             rcv_buffer[packet.seqnum] = packet; /* store the packet in the buffer */
             packets_received++; /* increment the count of packets received */
         } else {
-            if (TRACE > 0)
+            if (TRACE > 0) {
                 printf("----B: duplicate packet %d is received\n", packet.seqnum);
+                /*getchar();*/
+            }
         }
 
         /* if the packet is the base on the iwndow, send consecutive packets to the upper layer */
@@ -237,8 +264,10 @@ void B_input(struct pkt packet) {
     }
 
     
-    if (TRACE > 0)
+    if (TRACE > 0) {
         printf("----B: packet %d is received, lower window start %d, lower window end %d\n", packet.seqnum, lower_window_start, lower_window_end);
+        /*getchar();*/
+    }
     
     if (lower_window_start < lower_window_end) {
         /* normal case, no wrap around */
@@ -258,8 +287,10 @@ void B_input(struct pkt packet) {
         for (i = 0; i < 20; i++)
             ack_packet.payload[i] = '0'; /* empty since no data to send */
         tolayer3(B, ack_packet); /* send ACK to layer 3 */
-        if (TRACE > 0)
+        if (TRACE > 0) {
             printf("----B: ACK %d is sent\n", ack_packet.acknum);
+            /*getchar();*/
+        }
         return;
     }
 
