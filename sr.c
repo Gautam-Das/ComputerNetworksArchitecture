@@ -74,5 +74,14 @@ void A_output(struct msg message) {
             printf("Sending packet %d to layer 3\n", send_pkt.seqnum);
         tolayer3 (A, send_pkt);
 
+        // start timer if first packet in window
+        if (A_next_seq_num == send_base) {
+            starttimer(A, RTT);
+        }
+        A_next_seq_num = (A_next_seq_num + 1) % SEQSPACE;
+    } else {
+        if (TRACE > 0)
+            printf("----A: New message arrives, send window is full\n");
+        window_full++;
     }
 }
