@@ -158,18 +158,29 @@ static struct pkt rcv_buffer[SEQSPACE]; /* array for storing packets that have b
 void B_init(void) {
     /* initialise B's window, buffer and sequence number */
     int i = 0;
+    int j = 0;
     rcv_base = 0;
     
     for (i = 0; i < SEQSPACE; i++) {
         rcv_buffer[i].seqnum = NOTINUSE; /* not used */
         rcv_buffer[i].acknum = NOTINUSE; /* not used */
         rcv_buffer[i].checksum = 0; /* not used */
-        for (int j = 0; j < 20; j++)
+        for (j = 0; j < 20; j++)
             rcv_buffer[i].payload[j] = '0'; /* empty since no data to send */
     }
 }
 
 void B_input(struct pkt packet) {
+    /* if packet is in the current window */
+    int window_start = rcv_base;
+    int window_end = (rcv_base + WINDOWSIZE) % SEQSPACE; /* the end of the window is not inclusive */
+    bool in_window = false;
+
+    /* check if packet is in the lower window: [rcv_base-N, rcv_base-1] */
+    int lower_window_start = (rcv_base - WINDOWSIZE + SEQSPACE) % SEQSPACE; /* the start of the window is inclusive */
+    int lower_window_end = rcv_base; /* the end of the window is not inclusive */
+    bool in_lower_window = false;
+
     /* packet is received from layer 3 */
     /* check if the packet is corrupted */
     if (is_corrupted(packet)) {
@@ -179,10 +190,7 @@ void B_input(struct pkt packet) {
     }
     packets_received++;
     
-    /* if packet is in the current window */
-    int window_start = rcv_base;
-    int window_end = (rcv_base + WINDOWSIZE) % SEQSPACE; /* the end of the window is not inclusive */
-    bool in_window = false;
+    
     if (TRACE > 0)
         printf("----B: packet %d is received, window start %d, window end %d\n", packet.seqnum, window_start, window_end);
     
@@ -227,10 +235,7 @@ void B_input(struct pkt packet) {
         return;   
     }
 
-    /* check if packet is in the lower window: [rcv_base-N, rcv_base-1] */
-    int lower_window_start = (rcv_base - WINDOWSIZE + SEQSPACE) % SEQSPACE; /* the start of the window is inclusive */
-    int lower_window_end = rcv_base; /* the end of the window is not inclusive */
-    bool in_lower_window = false;
+    
     if (TRACE > 0)
         printf("----B: packet %d is received, lower window start %d, lower window end %d\n", packet.seqnum, lower_window_start, lower_window_end);
     
