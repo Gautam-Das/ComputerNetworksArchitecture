@@ -164,3 +164,94 @@ void B_init(void) {
             rcv_buffer[i].payload[j] = '0'; // empty since no data to send
     }
 }
+
+void B_input(struct pkt packet) {
+    // packet is received from layer 3
+    // check if the packet is corrupted
+    if (is_corrupted(packet)) {
+        if (TRACE > 0)
+            printf("----B: corrupted packet %d is received\n", packet.seqnum);
+        return;
+    }
+    packets_received++;
+    
+    // if packet is in the current window
+    int window_start = rcv_base;
+    int window_end = (rcv_base + WINDOWSIZE) % SEQSPACE; // the end of the window is not inclusive
+    bool in_window = false;
+    if (TRACE > 0)
+        printf("----B: packet %d is received, window start %d, window end %d\n", packet.seqnum, window_start, window_end);
+    
+    if (window_start < window_end) {
+        // normal case, no wrap around
+        in_window = (packet.seqnum >= window_start && packet.seqnum < window_end);
+    } else {
+        // wrap around case
+        in_window = (packet.seqnum >= window_start || packet.seqnum < window_end);
+    }
+
+    if (in_window) {
+        // if the packet is in the window, send an ACK
+        struct pkt ack_packet;
+        ack_packet.seqnum = NOTINUSE; // not used
+        ack_packet.acknum = packet.seqnum;
+        ack_packet.checksum = compute_checksum(ack_packet); // compute checksum
+        for (int i = 0; i < 20; i++)
+            ack_packet.payload[i] = '0'; // empty since no data to send
+        tolayer3(B, ack_packet); // send ACK to layer 3
+
+        if (TRACE > 0)
+            printf("----B: ACK %d is sent\n", ack_packet.acknum);
+            
+        // check if packet is a duplicate
+        if (rcv_buffer[packet.seqnum].seqnum == NOTINUSE) {
+            // if the packet is not a duplicate, store it in the buffer
+            rcv_buffer[packet.seqnum] = packet; // store the packet in the buffer
+            packets_received++; // increment the count of packets received
+        } else {
+            if (TRACE > 0)
+                printf("----B: duplicate packet %d is received\n", packet.seqnum);
+        }
+
+        // if the packet is the base on the iwndow, send consecutive packets to the upper layer
+        while (rcv_buffer[rcv_base].seqnum != NOTINUSE) {
+            // deliver the packet to the upper layer
+            tolayer5(B, rcv_buffer[rcv_base].payload); // deliver the packet to the upper layer
+            rcv_buffer[rcv_base].seqnum = NOTINUSE; // mark the packet as not used
+            rcv_base = (rcv_base + 1) % SEQSPACE; // slide the window to the right
+        } 
+        return;   
+    }
+
+    // check if packet is in the lower window: [rcv_base-N, rcv_base-1]
+    int lower_window_start = (rcv_base - WINDOWSIZE + SEQSPACE) % SEQSPACE; // the start of the window is inclusive
+    int lower_window_end = rcv_base; // the end of the window is not inclusive
+    bool in_lower_window = false;
+    if (TRACE > 0)
+        printf("----B: packet %d is received, lower window start %d, lower window end %d\n", packet.seqnum, lower_window_start, lower_window_end);
+    
+    if (lower_window_start < lower_window_end) {
+        // normal case, no wrap around
+        in_lower_window = (packet.seqnum >= lower_window_start && packet.seqnum < lower_window_end);
+    } else {
+        // wrap around case
+        in_lower_window = (packet.seqnum >= lower_window_start || packet.seqnum < lower_window_end);
+    }
+    
+    if (in_lower_window){
+        // send an ACK for the packet
+        struct pkt ack_packet;
+        ack_packet.seqnum = NOTINUSE; // not used 
+        ack_packet.acknum = packet.seqnum;
+        ack_packet.checksum = compute_checksum(ack_packet); // compute checksum
+        for (int i = 0; i < 20; i++)
+            ack_packet.payload[i] = '0'; // empty since no data to send
+        tolayer3(B, ack_packet); // send ACK to layer 3
+        if (TRACE > 0)
+            printf("----B: ACK %d is sent\n", ack_packet.acknum);
+        return;
+    }
+
+    // if the packet is not in the either of the windows, drop it
+    return;
+}
