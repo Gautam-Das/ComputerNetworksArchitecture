@@ -99,3 +99,53 @@ void A_timerinterrupt(void) {
     packets_resent++;
     starttimer(A, RTT);
 }
+
+void A_input(struct pkt packet) {
+    // when an ACK is received from layer 3
+    // check if the ACK is corrupted
+    if (is_corrupted(packet)) {
+        if (TRACE > 0)
+            printf("----A: corrupted ACK %d is received\n", packet.acknum);
+        return;
+    }
+    total_ACKs_received++;
+    
+    // check if the ACK is within the window
+    if (packet.acknum < send_base || packet.acknum >= A_next_seq_num) {
+        if (TRACE > 0)
+            printf("----A: ACK %d is out of window\n", packet.acknum);
+        return;
+    }
+
+    // check if the ACK is a new ACK or a duplicate
+    if (acked[packet.acknum]) {
+        if (TRACE > 0)
+            printf("----A: duplicate ACK %d received, do nothing!\n", packet.acknum);
+        return;
+    }
+
+    acked[packet.acknum] = true; // mark the ACK as received
+    new_ACKs++;
+
+    // if the ACK is the first packet in the window
+    // stop the timer and slide the window to the right
+    if (packet.acknum == send_base) {
+        if (TRACE > 0)
+            printf("----A: ACK %d is for base packet\n", packet.acknum);
+        stoptimer(A); // stop the timer
+    }
+
+    // slide the window to the right until the first unacked packet is found
+    while (send_base != A_next_seq_num && acked[send_base]) {
+        acked[send_base] = false; // mark the ACK as not received
+        send_base = (send_base + 1) % SEQSPACE;
+    }
+
+    // if current base_packet is unacked, start new timer
+    if (send_base != A_next_seq_num) {
+        starttimer(A, RTT); // start the timer for the new base packet
+    } else {
+        stoptimer(A); // stop the timer if all packets are ACKed
+    }
+}
+
