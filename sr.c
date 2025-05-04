@@ -134,12 +134,12 @@ void A_input(struct pkt packet) {
     if (packet.acknum == send_base) {
         if (TRACE > 0)
             printf("----A: ACK %d is for base packet\n", packet.acknum);
-        stoptimer(A); // stop the timer
+        stoptimer(A); /* stop the timer */
     }
 
     /* slide the window to the right until the first unacked packet is found */
     while (send_base != A_next_seq_num && acked[send_base]) {
-        acked[send_base] = false; // mark the ACK as not received
+        acked[send_base] = false; /* mark the ACK as not received */
         send_base = (send_base + 1) % SEQSPACE;
     }
 
