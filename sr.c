@@ -54,6 +54,7 @@ void A_output(struct msg message) {
     /* which should be the first packet in the window */
 
     struct pkt send_pkt;
+    int i;
 
     /* if sequence number is within the window*/
     if (A_next_seq_num < send_base + WINDOWSIZE) {
@@ -63,7 +64,7 @@ void A_output(struct msg message) {
         /* create packet */
         send_pkt.seqnum = A_next_seq_num;
         send_pkt.acknum = NOTINUSE;
-        for (int i = 0; i < 20; i++)
+        for (i = 0; i < 20; i++)
             send_pkt.payload[i] = message.data[i];
         send_pkt.checksum = compute_checksum(send_pkt);
 
@@ -157,7 +158,8 @@ static struct pkt rcv_buffer[SEQSPACE]; /* array for storing packets that have b
 void B_init(void) {
     /* initialise B's window, buffer and sequence number */
     rcv_base = 0;
-    for (int i = 0; i < SEQSPACE; i++) {
+    int i = 0;
+    for (i = 0; i < SEQSPACE; i++) {
         rcv_buffer[i].seqnum = NOTINUSE; /* not used */
         rcv_buffer[i].acknum = NOTINUSE; /* not used */
         rcv_buffer[i].checksum = 0; /* not used */
