@@ -197,9 +197,7 @@ void B_input(struct pkt packet) {
         printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
         return;
     }
-    packets_received++;
-    
-    
+        
     if (TRACE > 0)
         printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
     
