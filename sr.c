@@ -117,10 +117,6 @@ void A_input(struct pkt packet) {
 
     /*check if the ACK is within the window*/
     if (packet.acknum < send_base || packet.acknum >= A_next_seq_num) {
-        if (TRACE > 0) {
-            printf("----A: ACK %d is out of window\n", packet.acknum);
-            /*getchar();*/
-        }
         return;
     }
 
@@ -140,10 +136,6 @@ void A_input(struct pkt packet) {
     /* if the ACK is the first packet in the window */
     /* stop the timer and slide the window to the right */
     if (packet.acknum == send_base) {
-        if (TRACE > 0) {
-            printf("----A: ACK %d is for base packet\n", packet.acknum);
-            /*getchar();*/
-        }
         stoptimer(A); /* stop the timer */
     }
 
