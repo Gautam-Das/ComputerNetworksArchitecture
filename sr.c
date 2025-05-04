@@ -53,4 +53,26 @@ void A_output(struct msg message) {
     // for the time, only track the oldest un'acked packet
     // which should be the first packet in the window
 
+    // if sequence number is within the window
+    if (A_next_seq_num < send_base + WINDOWSIZE) {
+        if (TRACE > 1)
+            printf("----A: New message arrives, send window is not full, send new message to layer3!\n");
+
+        // create packet
+        struct pkt send_pkt;
+        send_pkt.seqnum = A_next_seq_num;
+        send_pkt.acknum = NOTINUSE;
+        for (int i = 0; i < 20; i++)
+            send_pkt.payload[i] = message.data[i];
+        send_pkt.checksum = compute_checksum(send_pkt);
+
+        // store the packet in the buffer
+        buffer[A_next_seq_num % WINDOWSIZE] = send_pkt;
+        
+        /* send out packet */
+        if (TRACE > 0)
+            printf("Sending packet %d to layer 3\n", send_pkt.seqnum);
+        tolayer3 (A, send_pkt);
+
+    }
 }
