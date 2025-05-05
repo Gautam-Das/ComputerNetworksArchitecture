@@ -192,7 +192,7 @@ void B_input(struct pkt packet) {
         
     if (TRACE > 0)
         printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
-
+    packets_received++; /* increment the count of packets received */
     if (window_start < window_end) {
         /* normal case, no wrap around */
         in_window = (packet.seqnum >= window_start && packet.seqnum < window_end);
@@ -217,7 +217,6 @@ void B_input(struct pkt packet) {
         if (rcv_buffer[packet.seqnum].seqnum == NOTINUSE) {
             /* if the packet is not a duplicate, store it in the buffer */
             rcv_buffer[packet.seqnum] = packet; /* store the packet in the buffer */
-            packets_received++; /* increment the count of packets received */
         }
 
         /* if the packet is the base on the window, send consecutive packets to the upper layer */
@@ -239,9 +238,6 @@ void B_input(struct pkt packet) {
         in_lower_window = (packet.seqnum >= lower_window_start || packet.seqnum < lower_window_end);
     }
     
-    printf("%d , %d, %d, %d, %d\n", window_start, window_end, packet.seqnum, in_window, in_lower_window);
-
-
     if (in_lower_window){
         /* send an ACK for the packet */
         struct pkt ack_packet;
