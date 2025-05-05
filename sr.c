@@ -186,7 +186,6 @@ void B_input(struct pkt packet) {
     /* packet is received from layer 3 */
     /* check if the packet is corrupted */
     if (is_corrupted(packet)) {
-        printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
         return;
     }
         
