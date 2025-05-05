@@ -40,6 +40,7 @@ void A_init(void) {
     /* initialise A's window, buffer and sequence number */
     A_next_seq_num = 0;
     send_base = 0;   
+    for (int i = 0; i < SEQSPACE; i++) acked[i] = false;
 
 }
 
@@ -68,7 +69,7 @@ void A_output(struct msg message) {
         send_pkt.checksum = compute_checksum(send_pkt);
 
         /*store the packet in the buffer*/
-        buffer[A_next_seq_num % WINDOWSIZE] = send_pkt;
+        buffer[A_next_seq_num % SEQSPACE] = send_pkt;
         
         /* send out packet */
         if (TRACE > 0)
