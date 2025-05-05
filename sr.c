@@ -149,8 +149,6 @@ void A_input(struct pkt packet) {
     /* if current base_packet is unacked, start new timer */
     if (send_base != A_next_seq_num) {
         starttimer(A, RTT); /* start the timer for the new base packet */
-    } else {
-        stoptimer(A); /*stop the timer if all packets are ACKed*/
     }
 }
 
