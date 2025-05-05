@@ -141,7 +141,7 @@ void A_input(struct pkt packet) {
     }
 
     /* slide the window to the right until the first unacked packet is found */
-    while (send_base != A_next_seq_num && acked[send_base]) {
+    while (send_base != A_next_seq_num && acked[send_base] == true) {
         acked[send_base] = false; /* mark the ACK as not received */
         send_base = (send_base + 1) % SEQSPACE;
     }
@@ -229,9 +229,6 @@ void B_input(struct pkt packet) {
         return;   
     }
 
-    
-    if (TRACE > 0)
-      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
     
     if (lower_window_start < lower_window_end) {
         /* normal case, no wrap around */
