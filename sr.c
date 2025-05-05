@@ -139,18 +139,19 @@ void A_input(struct pkt packet) {
     /* stop the timer and slide the window to the right */
     if (packet.acknum == send_base) {
         stoptimer(A); /* stop the timer */
+        /* slide the window to the right until the first unacked packet is found */
+        while (send_base != A_next_seq_num && acked[send_base] == true) {
+            acked[send_base] = false; /* mark the ACK as not received */
+            send_base = (send_base + 1) % SEQSPACE;
+        }
+
+        /* if current base_packet is unacked, start new timer */
+        if (send_base != A_next_seq_num) {
+            starttimer(A, RTT); /* start the timer for the new base packet */
+        }
     }
 
-    /* slide the window to the right until the first unacked packet is found */
-    while (send_base != A_next_seq_num && acked[send_base] == true) {
-        acked[send_base] = false; /* mark the ACK as not received */
-        send_base = (send_base + 1) % SEQSPACE;
-    }
-
-    /* if current base_packet is unacked, start new timer */
-    if (send_base != A_next_seq_num) {
-        starttimer(A, RTT); /* start the timer for the new base packet */
-    }
+    
 }
 
 /********* Receiver (B)  variables and procedures ************/
